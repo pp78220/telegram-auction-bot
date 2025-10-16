@@ -179,6 +179,7 @@ async def end_specific_auction(update: Update, context: ContextTypes.DEFAULT_TYP
 # 🚀 Main
 async def main():
     await init_db()
+    print("Database initialized ✅")
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
