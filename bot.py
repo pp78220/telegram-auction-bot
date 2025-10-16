@@ -35,6 +35,7 @@ user_states = {}  # user_id → bid_id they are bidding on
 
 # 👋 /start - Add subscriber
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"Received /start from {update.message.from_user.id}")
     user = update.message.from_user
     await add_subscriber(user.id, user.username or user.full_name)
     await update.message.reply_text(
