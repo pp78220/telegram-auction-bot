@@ -184,8 +184,10 @@ async def end_specific_auction(update: Update, context: ContextTypes.DEFAULT_TYP
 async def main():
     await init_db()
     print("Database initialized ✅")
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+    # Add handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("list", list_bids))
@@ -194,9 +196,15 @@ async def main():
     app.add_handler(CallbackQueryHandler(select_bid, pattern="^bid_"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_bid))
 
-    print("🤖 Bot running...")
-    await app.run_polling()
+    # Initialize and start bot
+    await app.initialize()
+    await app.start()
 
+    print("🤖 Bot running...")
+
+    # Keep bot running
+    await app.updater.start_polling()
+    await app.updater.idle()
 
 if __name__ == "__main__":
     import asyncio
