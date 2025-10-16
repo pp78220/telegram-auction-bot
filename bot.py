@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -19,6 +20,9 @@ from db import (
     get_bid_details,
     end_auction,
 )
+
+# Load environment variables from .env
+load_dotenv()
 
 # ---------------- CONFIG ----------------
 BOT_TOKEN = os.getenv("BOT_TOKEN")
