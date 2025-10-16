@@ -26,6 +26,7 @@ load_dotenv()
 
 # ---------------- CONFIG ----------------
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+print(os.getenv("BOT_TOKEN"))
 ADMINS = [5680376833]  # Add multiple admin IDs
 # ----------------------------------------
 
