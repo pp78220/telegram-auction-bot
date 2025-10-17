@@ -201,15 +201,18 @@ async def end_specific_auction(update: Update, context: ContextTypes.DEFAULT_TYP
     await end_auction(bid_id)
     await update.message.reply_text(f"✅ Auction #{bid_id} has been ended.")
 
-
-async def setup():
+async def setup_db():
     await init_db()
     print("✅ Database initialized")
 
-
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(setup())
+    # Create & set event loop manually (Python 3.12+ requirement)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Run DB init
+    loop.run_until_complete(setup_db())
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -224,9 +227,10 @@ if __name__ == "__main__":
 
     print("🚀 Bot running with webhook...")
 
+    # Run webhook (this will block and manage the loop internally)
     app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=BOT_TOKEN,
-        webhook_url=f"{RAILWAY_URL}/{BOT_TOKEN}",
+        webhook_url=f"{RAILWAY_URL}/{BOT_TOKEN}"
     )
