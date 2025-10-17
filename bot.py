@@ -29,6 +29,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 PORT = int(os.environ.get("PORT", 8443))  # Railway provides $PORT
 print(os.getenv("BOT_TOKEN"))
 ADMINS = [5680376833]  # Add multiple admin IDs
+RAILWAY_URL = "https://telegram-auction-bot-production-4d09.up.railway.app"  # Your app URL
+
 # ----------------------------------------
 
 user_states = {}  # user_id → bid_id they are bidding on
@@ -200,14 +202,18 @@ async def end_specific_auction(update: Update, context: ContextTypes.DEFAULT_TYP
     await update.message.reply_text(f"✅ Auction #{bid_id} has been ended.")
 
 
-# 🚀 Main
-async def main():
+async def setup():
     await init_db()
-    print("Database initialized ✅")
+    print("✅ Database initialized")
 
-    # Build app and add handlers BEFORE starting
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(setup())
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+    # Register handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("list", list_bids))
@@ -216,24 +222,11 @@ async def main():
     app.add_handler(CallbackQueryHandler(select_bid, pattern="^bid_"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_bid))
 
-    # Start webhook server
-    print("🤖 Starting bot webhook...")
-    WEBHOOK_URL = (
-        f"https://telegram-auction-bot-production-4d09.up.railway.app/{BOT_TOKEN}"
-    )
+    print("🚀 Bot running with webhook...")
 
-    print(f"🚀 Starting bot webhook on port {PORT} ...")
-    await app.run_webhook(
+    app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=BOT_TOKEN,
-        webhook_url=WEBHOOK_URL,
+        webhook_url=f"{RAILWAY_URL}/{BOT_TOKEN}",
     )
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())  # Schedule your async main
-    loop.run_forever()
