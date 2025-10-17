@@ -26,6 +26,7 @@ load_dotenv()
 
 # ---------------- CONFIG ----------------
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+PORT = int(os.environ.get("PORT", 8443))  # Railway provides $PORT
 print(os.getenv("BOT_TOKEN"))
 ADMINS = [5680376833]  # Add multiple admin IDs
 # ----------------------------------------
@@ -187,9 +188,9 @@ async def main():
     await init_db()
     print("Database initialized ✅")
 
+    # Build app and add handlers BEFORE starting
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Add handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("broadcast", broadcast))
     app.add_handler(CommandHandler("list", list_bids))
@@ -198,16 +199,26 @@ async def main():
     app.add_handler(CallbackQueryHandler(select_bid, pattern="^bid_"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_bid))
 
-    # Initialize and start bot
+    # Start webhook server
+    print("🤖 Starting bot webhook...")
+
     await app.initialize()
     await app.start()
 
-    print("🤖 Bot running...")
+    await app.bot.set_webhook(
+        url=f"https://telegram-auction-bot-production-4d09.up.railway.app/{BOT_TOKEN}"
+    )
 
-    # Keep bot running
-    await app.updater.start_polling()
-    await app.updater.idle()
-
+    # Run webhook listener (no polling!)
+    await app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=BOT_TOKEN,
+        webhook_url=f"https://telegram-auction-bot-production-4d09.up.railway.app/{BOT_TOKEN}",
+    )
+    
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())  # Schedule your async main
+    loop.run_forever()  
