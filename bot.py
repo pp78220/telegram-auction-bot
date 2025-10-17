@@ -59,7 +59,13 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bid_id = bid["bid_id"]
     created_at = bid["created_at"].strftime("%Y-%m-%d %H:%M:%S")
 
-    keyboard = [[InlineKeyboardButton(f"💰 Place Bid on #{bid_id}", callback_data=f"bid_{bid_id}")]]
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f"💰 Place Bid on #{bid_id}", callback_data=f"bid_{bid_id}"
+            )
+        ]
+    ]
     markup = InlineKeyboardMarkup(keyboard)
 
     subs = await get_all_subscribers()
@@ -76,7 +82,9 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print(f"Failed to send broadcast to {user_id}: {e}")
 
-    await update.message.reply_text(f"✅ Broadcast sent to {success} users.\nAuction ID: {bid_id}")
+    await update.message.reply_text(
+        f"✅ Broadcast sent to {success} users.\nAuction ID: {bid_id}"
+    )
 
 
 # 💬 User selects a bid button
@@ -86,7 +94,10 @@ async def select_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     bid_id = int(query.data.replace("bid_", ""))
     user_states[user_id] = bid_id
-    await query.message.reply_text(f"You selected *Bid #{bid_id}*.\nPlease enter your bid amount:", parse_mode="Markdown")
+    await query.message.reply_text(
+        f"You selected *Bid #{bid_id}*.\nPlease enter your bid amount:",
+        parse_mode="Markdown",
+    )
 
 
 # 💰 User enters a bid amount
@@ -96,7 +107,9 @@ async def handle_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bid_amount = update.message.text
 
     if user_id not in user_states:
-        await update.message.reply_text("Please select a bid first using the 💰 button.")
+        await update.message.reply_text(
+            "Please select a bid first using the 💰 button."
+        )
         return
 
     if not bid_amount.replace(".", "", 1).isdigit():
@@ -104,8 +117,12 @@ async def handle_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     bid_id = user_states[user_id]
-    await add_participant(bid_id, user_id, user.username or user.full_name, float(bid_amount))
-    await update.message.reply_text(f"✅ Your bid of {bid_amount} has been recorded for Bid #{bid_id}.")
+    await add_participant(
+        bid_id, user_id, user.username or user.full_name, float(bid_amount)
+    )
+    await update.message.reply_text(
+        f"✅ Your bid of {bid_amount} has been recorded for Bid #{bid_id}."
+    )
 
     # Notify Admins
     for admin_id in ADMINS:
@@ -201,24 +218,22 @@ async def main():
 
     # Start webhook server
     print("🤖 Starting bot webhook...")
-
-    await app.initialize()
-    await app.start()
-
-    await app.bot.set_webhook(
-        url=f"https://telegram-auction-bot-production-4d09.up.railway.app/{BOT_TOKEN}"
+    WEBHOOK_URL = (
+        f"https://telegram-auction-bot-production-4d09.up.railway.app/{BOT_TOKEN}"
     )
 
-    # Run webhook listener (no polling!)
+    print(f"🚀 Starting bot webhook on port {PORT} ...")
     await app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=BOT_TOKEN,
-        webhook_url=f"https://telegram-auction-bot-production-4d09.up.railway.app/{BOT_TOKEN}",
+        webhook_url=WEBHOOK_URL,
     )
-    
+
+
 if __name__ == "__main__":
     import asyncio
+
     loop = asyncio.get_event_loop()
     loop.create_task(main())  # Schedule your async main
-    loop.run_forever()  
+    loop.run_forever()
