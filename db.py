@@ -17,35 +17,41 @@ async def get_db_connection():
 
 # ------------------ Init Tables ------------------
 async def init_db():
+    
+    """Initialize database and create tables if they don't exist."""
     conn = await get_db_connection()
+
+    # Users table
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            telegram_id BIGINT UNIQUE,
+            telegram_id BIGINT PRIMARY KEY,
             username TEXT,
-            joined_at TIMESTAMP DEFAULT NOW()
-        );
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     """)
+
+    # Bids table
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS bids (
-            id SERIAL PRIMARY KEY,
-            bid_id TEXT UNIQUE,
-            title TEXT,
-            created_at TIMESTAMP DEFAULT NOW(),
-            ended_at TIMESTAMP,
+            bid_id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             status TEXT DEFAULT 'active'
-        );
+        )
     """)
+
+    # Participants table
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS participants (
             id SERIAL PRIMARY KEY,
-            bid_id TEXT,
-            user_id BIGINT,
+            bid_id TEXT REFERENCES bids(bid_id) ON DELETE CASCADE,
+            telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
             username TEXT,
-            amount NUMERIC,
-            bid_time TIMESTAMP DEFAULT NOW()
-        );
+            amount NUMERIC NOT NULL,
+            bid_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     """)
+
     await conn.close()
 
 
