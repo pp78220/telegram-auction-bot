@@ -184,7 +184,7 @@ async def bid_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if participants:
         for p in participants:
             message += (
-                f"👤 User ID: {p['telegram_id']} — 💰 {p['amount']} (⏰ {p['bid_time']})\n"
+                f"👤 User ID: {p['username']} — 💰 {p['amount']} (⏰ {p['bid_time']})\n"
             )
     else:
         message += "_No participants yet._"

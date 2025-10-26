@@ -111,7 +111,7 @@ async def get_bid_details(bid_id: int):
     conn = await get_db_connection()
     bid = await conn.fetchrow("SELECT * FROM bids WHERE bid_id=$1", bid_id)
     participants = await conn.fetch("""
-        SELECT u.username, p.amount, p.bid_time
+        SELECT u.username, u.telegram_id, p.amount, p.bid_time
         FROM participants p
         JOIN users u ON p.telegram_id = u.telegram_id
         WHERE p.bid_id=$1
