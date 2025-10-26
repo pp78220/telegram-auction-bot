@@ -1,8 +1,8 @@
 # db.py
 import asyncpg
 import os
-from datetime import datetime
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -17,7 +17,6 @@ async def get_db_connection():
 
 # ------------------ Init Tables ------------------
 async def init_db():
-    
     """Initialize database and create tables if they don't exist."""
     conn = await get_db_connection()
 
@@ -30,23 +29,23 @@ async def init_db():
         )
     """)
 
-    # Bids table
+    # Bids table (bid_id is SERIAL)
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS bids (
-            bid_id TEXT PRIMARY KEY,
+            bid_id SERIAL PRIMARY KEY,
             title TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            status TEXT DEFAULT 'active'
+            status TEXT DEFAULT 'active',
+            ended_at TIMESTAMP
         )
     """)
 
-    # Participants table
+    # Participants table (store telegram_id instead of username)
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS participants (
             id SERIAL PRIMARY KEY,
-            bid_id TEXT REFERENCES bids(bid_id) ON DELETE CASCADE,
+            bid_id INTEGER REFERENCES bids(bid_id) ON DELETE CASCADE,
             telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
-            username TEXT,
             amount NUMERIC NOT NULL,
             bid_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -74,40 +73,59 @@ async def get_all_subscribers():
 
 
 # ------------------ Bids ------------------
-async def create_bid(bid_id: str, title: str):
+async def create_bid(title: str):
+    """Create a new bid and return its ID."""
     conn = await get_db_connection()
-    await conn.execute("""
-        INSERT INTO bids (bid_id, title, created_at)
-        VALUES ($1, $2, NOW())
-    """, bid_id, title)
+    bid_id = await conn.fetchval("""
+        INSERT INTO bids (title, created_at)
+        VALUES ($1, NOW())
+        RETURNING bid_id
+    """, title)
     await conn.close()
+    return bid_id
 
 
 async def list_active_bids():
     conn = await get_db_connection()
-    rows = await conn.fetch("SELECT bid_id, title, created_at, status FROM bids WHERE status='active'")
+    rows = await conn.fetch("""
+        SELECT bid_id, title, created_at, status
+        FROM bids
+        WHERE status = 'active'
+        ORDER BY created_at DESC
+    """)
     await conn.close()
     return rows
 
 
-async def add_participant(bid_id: str, user_id: int, username: str, amount: float):
+async def add_participant(bid_id: int, telegram_id: int, amount: float):
+    """Add a participant to a bid."""
     conn = await get_db_connection()
     await conn.execute("""
-        INSERT INTO participants (bid_id, user_id, username, amount, bid_time)
-        VALUES ($1, $2, $3, $4, NOW())
-    """, bid_id, user_id, username, amount)
+        INSERT INTO participants (bid_id, telegram_id, amount, bid_time)
+        VALUES ($1, $2, $3, NOW())
+    """, bid_id, telegram_id, amount)
     await conn.close()
 
 
-async def get_bid_details(bid_id: str):
+async def get_bid_details(bid_id: int):
     conn = await get_db_connection()
     bid = await conn.fetchrow("SELECT * FROM bids WHERE bid_id=$1", bid_id)
-    participants = await conn.fetch("SELECT username, amount, bid_time FROM participants WHERE bid_id=$1", bid_id)
+    participants = await conn.fetch("""
+        SELECT u.username, p.amount, p.bid_time
+        FROM participants p
+        JOIN users u ON p.telegram_id = u.telegram_id
+        WHERE p.bid_id=$1
+        ORDER BY p.bid_time DESC
+    """, bid_id)
     await conn.close()
     return bid, participants
 
 
-async def end_auction(bid_id: str):
+async def end_auction(bid_id: int):
     conn = await get_db_connection()
-    await conn.execute("UPDATE bids SET status='ended', ended_at=NOW() WHERE bid_id=$1", bid_id)
+    await conn.execute("""
+        UPDATE bids
+        SET status='ended', ended_at=NOW()
+        WHERE bid_id=$1
+    """, bid_id)
     await conn.close()

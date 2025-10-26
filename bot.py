@@ -57,26 +57,26 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     title = " ".join(context.args)
-    bid = await create_bid(title)
-    bid_id = bid["bid_id"]
-    created_at = bid["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+    bid_id = await create_bid(title)  # returns generated bid_id
 
     keyboard = [
-        [
-            InlineKeyboardButton(
-                f"💰 Place Bid on #{bid_id}", callback_data=f"bid_{bid_id}"
-            )
-        ]
+        [InlineKeyboardButton(f"💰 Place Bid on #{bid_id}", callback_data=f"bid_{bid_id}")]
     ]
     markup = InlineKeyboardMarkup(keyboard)
 
     subs = await get_all_subscribers()
     success = 0
-    for user_id in subs:
+    for sub in subs:
+        user_id = sub["telegram_id"]
         try:
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"📢 *New Auction!*\n\n🆔 *Bid #{bid_id}*\n📦 {title}\n🕒 Created: {created_at}\n\nClick below to bid 👇",
+                text=(
+                    f"📢 *New Auction!*\n\n"
+                    f"🆔 *Bid #{bid_id}*\n"
+                    f"📦 {title}\n"
+                    f"🕒 Created: Now\n\nClick below to bid 👇"
+                ),
                 parse_mode="Markdown",
                 reply_markup=markup,
             )
@@ -119,9 +119,7 @@ async def handle_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     bid_id = user_states[user_id]
-    await add_participant(
-        bid_id, user_id, user.username or user.full_name, float(bid_amount)
-    )
+    await add_participant(bid_id, user_id, float(bid_amount))
     await update.message.reply_text(
         f"✅ Your bid of {bid_amount} has been recorded for Bid #{bid_id}."
     )
@@ -131,7 +129,12 @@ async def handle_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
                 chat_id=admin_id,
-                text=f"📥 *New Bid Received*\n\n🆔 Bid #{bid_id}\n👤 @{user.username or user.full_name}\n💰 Amount: {bid_amount}",
+                text=(
+                    f"📥 *New Bid Received*\n\n"
+                    f"🆔 Bid #{bid_id}\n"
+                    f"👤 User ID: {user_id}\n"
+                    f"💰 Amount: {bid_amount}"
+                ),
                 parse_mode="Markdown",
             )
         except Exception as e:
@@ -180,7 +183,9 @@ async def bid_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if participants:
         for p in participants:
-            message += f"👤 {p['username']} — 💰 {p['amount']} (⏰ {p['bid_time']})\n"
+            message += (
+                f"👤 User ID: {p['telegram_id']} — 💰 {p['amount']} (⏰ {p['bid_time']})\n"
+            )
     else:
         message += "_No participants yet._"
 
