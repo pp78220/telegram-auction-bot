@@ -138,7 +138,7 @@ async def get_monthly_report_data(months: int):
         FROM participants p
         JOIN bids b ON p.bid_id = b.bid_id
         JOIN users u ON u.telegram_id = p.telegram_id
-        WHERE b.created_at >= NOW() - ($1 || ' months')::INTERVAL
+        WHERE b.created_at >= NOW() - make_interval(months => $1)
         ORDER BY b.bid_id, p.bid_time
     """, months)
     await conn.close()
