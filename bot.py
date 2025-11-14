@@ -19,7 +19,11 @@ from db import (
     add_participant,
     get_bid_details,
     end_auction,
+    get_monthly_report_data
 )
+from openpyxl import Workbook
+from telegram import InputFile
+import io
 
 # Load environment variables from .env
 load_dotenv()
@@ -206,6 +210,51 @@ async def end_specific_auction(update: Update, context: ContextTypes.DEFAULT_TYP
     await end_auction(bid_id)
     await update.message.reply_text(f"✅ Auction #{bid_id} has been ended.")
 
+
+async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Usage: /report <months>")
+        return
+
+    months = int(context.args[0])
+
+    # Fetch data from DB
+    rows = await get_monthly_report_data(months)
+
+    if not rows:
+        await update.message.reply_text("No data found for this period.")
+        return
+
+    # Create Excel workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Auction Report"
+
+    # Header
+    ws.append(["Bid ID", "Title", "User ID", "Username", "Amount", "Bid Time"])
+
+    for r in rows:
+        ws.append([
+            r["bid_id"],
+            r["title"],
+            r["telegram_id"],
+            r["username"],
+            float(r["amount"]),
+            r["bid_time"].strftime("%Y-%m-%d %H:%M:%S")
+        ])
+
+    # Save file to memory buffer
+    excel_buffer = io.BytesIO()
+    wb.save(excel_buffer)
+    excel_buffer.seek(0)
+
+    filename = f"Auction_Report_Last_{months}_Month.xlsx"
+
+    await update.message.reply_document(
+        document=InputFile(excel_buffer, filename),
+        caption=f"📊 Auction Report (Last {months} Month)"
+    )
+
 async def setup_db():
     await init_db()
     print("✅ Database initialized")
@@ -227,6 +276,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("list", list_bids))
     app.add_handler(CommandHandler("bid", bid_details))
     app.add_handler(CommandHandler("end", end_specific_auction))
+    app.add_handler(CommandHandler("report", report))
     app.add_handler(CallbackQueryHandler(select_bid, pattern="^bid_"))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_bid))
 
