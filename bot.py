@@ -212,38 +212,39 @@ async def end_specific_auction(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id not in ADMINS:
+        return
+    
     if not context.args:
         await update.message.reply_text("Usage: /report <months>")
         return
 
     months = int(context.args[0])
 
-    # Fetch data from DB
     rows = await get_monthly_report_data(months)
 
     if not rows:
         await update.message.reply_text("No data found for this period.")
         return
 
-    # Create Excel workbook
+    # Create workbook
     wb = Workbook()
     ws = wb.active
     ws.title = "Auction Report"
 
-    # Header
-    ws.append(["Bid ID", "Title", "User ID", "Username", "Amount", "Bid Time"])
+    # Header Row (Final)
+    ws.append(["Bid ID", "Title", "Winner", "Amount", "Bid Time"])
 
     for r in rows:
         ws.append([
             r["bid_id"],
             r["title"],
-            r["telegram_id"],
-            r["username"],
+            r["winner"],         # username of winner
             float(r["amount"]),
             r["bid_time"].strftime("%Y-%m-%d %H:%M:%S")
         ])
 
-    # Save file to memory buffer
+    # Save to memory
     excel_buffer = io.BytesIO()
     wb.save(excel_buffer)
     excel_buffer.seek(0)
@@ -251,9 +252,10 @@ async def report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     filename = f"Auction_Report_Last_{months}_Month.xlsx"
 
     await update.message.reply_document(
-        document=InputFile(excel_buffer, filename),
+        InputFile(excel_buffer, filename),
         caption=f"📊 Auction Report (Last {months} Month)"
     )
+
 
 async def setup_db():
     await init_db()

@@ -134,12 +134,17 @@ async def end_auction(bid_id: int):
 async def get_monthly_report_data(months: int):
     conn = await get_db_connection()
     rows = await conn.fetch("""
-        SELECT b.bid_id, b.title, p.telegram_id, u.username, p.amount, p.bid_time
+        SELECT 
+            b.bid_id,
+            b.title,
+            u.username AS winner,
+            p.amount,
+            p.bid_time
         FROM participants p
         JOIN bids b ON p.bid_id = b.bid_id
         JOIN users u ON u.telegram_id = p.telegram_id
         WHERE b.created_at >= NOW() - make_interval(months => $1)
-        ORDER BY b.bid_id, p.bid_time
+        ORDER BY b.bid_id, p.amount DESC, p.bid_time ASC
     """, months)
     await conn.close()
     return rows
