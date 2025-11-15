@@ -32,7 +32,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PORT = int(os.environ.get("PORT", 8443))  # Railway provides $PORT
 print(os.getenv("BOT_TOKEN"))
-ADMINS = [5680376833]  # Add multiple admin IDs
+ADMINS = [5680376833, 6114602212]  # Add multiple admin IDs
 RAILWAY_URL = "https://telegram-auction-bot-production-4d09.up.railway.app"  # Your app URL
 
 # ----------------------------------------
